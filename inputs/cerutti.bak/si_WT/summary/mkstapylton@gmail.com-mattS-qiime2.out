@@ -1,0 +1,20 @@
+\BOOKMARK [0][-]{section*.1}{MMEDS Analysis Summary}{}% 1
+\BOOKMARK [1][-]{section.1}{Table Statistics Summary}{section*.1}% 2
+\BOOKMARK [2][-]{subsection.1.1}{Dada2 Statistics}{section.1}% 3
+\BOOKMARK [1][-]{section.2}{Taxonomy Summary}{section*.1}% 4
+\BOOKMARK [2][-]{subsection.2.1}{Interpreting Taxonomy Results}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.2}{Phylum Level}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.3}{Genus Level}{section.2}% 7
+\BOOKMARK [1][-]{section.3}{Alpha Diversity}{section*.1}% 8
+\BOOKMARK [2][-]{subsection.3.1}{Interpreting Alpha Diversity Results}{section.3}% 9
+\BOOKMARK [2][-]{subsection.3.2}{Shannon Diversity}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.3}{Faith's Phylogenetic Diversity}{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.4}{Observed ASV}{section.3}% 12
+\BOOKMARK [1][-]{section.4}{Beta Diversity}{section*.1}% 13
+\BOOKMARK [2][-]{subsection.4.1}{Interpreting Beta Diversity Results}{section.4}% 14
+\BOOKMARK [2][-]{subsection.4.2}{Bray-Curtis, grouped by Housing}{section.4}% 15
+\BOOKMARK [2][-]{subsection.4.3}{Bray-Curtis, grouped by Strain}{section.4}% 16
+\BOOKMARK [2][-]{subsection.4.4}{Unweighted UniFrac, grouped by Housing}{section.4}% 17
+\BOOKMARK [2][-]{subsection.4.5}{Unweighted UniFrac, grouped by Strain}{section.4}% 18
+\BOOKMARK [2][-]{subsection.4.6}{Weighted UniFrac, grouped by Housing}{section.4}% 19
+\BOOKMARK [2][-]{subsection.4.7}{Weighted UniFrac, grouped by Strain}{section.4}% 20

@@ -1,0 +1,942 @@
+\documentclass[10pt,notitlepage,onecolumn,aps,pra]{revtex4-1}
+
+
+    
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+% We will generate all images so they have a width \maxwidth. This means
+% that they will get their normal width if they fit onto the page, but
+% are scaled down if they would overflow the margins.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+\else\Gin@nat@width\fi}
+\makeatother
+\let\Oldincludegraphics\includegraphics
+% Set max figure width to be 80% of text width, for now hardcoded.
+\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=.8\maxwidth]{#1}}
+% Ensure that by default, figures have no caption (until we provide a
+% proper Figure object with a Caption API and a way to capture that
+% in the conversion process - todo).
+\usepackage{caption}
+\DeclareCaptionLabelFormat{nolabel}{}
+\captionsetup{labelformat=nolabel}
+
+\usepackage{adjustbox} % Used to constrain images to a maximum size
+\usepackage{xcolor} % Allow colors to be defined
+\usepackage{enumerate} % Needed for markdown enumerations to work
+\usepackage{geometry} % Used to adjust the document margins
+\usepackage{amsmath} % Equations
+\usepackage{amssymb} % Equations
+\usepackage{textcomp} % defines textquotesingle
+% Hack from http://tex.stackexchange.com/a/47451/13684:
+\AtBeginDocument{%
+    \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+}
+\usepackage{upquote} % Upright quotes for verbatim code
+\usepackage{eurosym} % defines \euro
+\usepackage[mathletters]{ucs} % Extended unicode (utf-8) support
+\usepackage[utf8x]{inputenc} % Allow utf-8 characters in the tex document
+\usepackage{fancyvrb} % verbatim replacement that allows latex
+\usepackage{grffile} % extends the file name processing of package graphics
+                     % to support a larger range
+% The hyperref package gives us a pdf with properly built
+% internal navigation ('pdf bookmarks' for the table of contents,
+% internal cross-reference links, web links for URLs, etc.)
+\usepackage{hyperref}
+\usepackage{booktabs}  % table support for pandoc > 1.12.2
+\usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+\usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                            % normalem makes italics be italics, not underlines
+\usepackage{braket}
+
+\usepackage{titlesec}
+\usepackage{alphalph}
+\usepackage{pgffor}
+\renewcommand*{\thesubsection}{
+    \alphalph{\value{subsection}}
+}
+\newcommand\crule[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/28.93,k\_\_Bacteria;p\_\_OD1/11.88,k\_\_Bacteria;p\_\_Proteobacteria/64.15}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/19.44,k\_\_Bacteria;p\_\_Proteobacteria/70.84}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/29.41,k\_\_Bacteria;p\_\_Bacteroidetes/14.29,k\_\_Bacteria;p\_\_Firmicutes/14.14,k\_\_Bacteria;p\_\_OD1/14.08,k\_\_Bacteria;p\_\_Proteobacteria/68.28}
+\definecolor{k\_\_Bacteria;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes}{RGB}{82,175,67}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes}{RGB}{240,108,69}
+\definecolor{k\_\_Bacteria;p\_\_OD1}{RGB}{237,143,71}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria}{RGB}{178,148,199}
+\def\otuPhylum{k\_\_Bacteria;\_\_/27.73,k\_\_Bacteria;p\_\_Bacteroidetes/14.29,k\_\_Bacteria;p\_\_Firmicutes/14.14,k\_\_Bacteria;p\_\_OD1/12.98,k\_\_Bacteria;p\_\_Proteobacteria/67.26}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/19.44,k\_\_Bacteria;p\_\_Proteobacteria/70.84}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/34.65,k\_\_Bacteria;p\_\_Bacteroidetes/14.29,k\_\_Bacteria;p\_\_Firmicutes/15.36,k\_\_Bacteria;p\_\_OD1/12.98,k\_\_Bacteria;p\_\_Proteobacteria/66.43}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/24.48,k\_\_Bacteria;p\_\_Firmicutes/10.49,k\_\_Bacteria;p\_\_Proteobacteria/66.95}
+\definecolor{k\_\_Bacteria;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes}{RGB}{82,175,67}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes}{RGB}{240,108,69}
+\definecolor{k\_\_Bacteria;p\_\_OD1}{RGB}{237,143,71}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria}{RGB}{178,148,199}
+\def\otuPhylum{k\_\_Bacteria;\_\_/27.73,k\_\_Bacteria;p\_\_Bacteroidetes/14.29,k\_\_Bacteria;p\_\_Firmicutes/14.14,k\_\_Bacteria;p\_\_OD1/12.98,k\_\_Bacteria;p\_\_Proteobacteria/67.26}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/28.93,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/11.05,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/16.84,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/42.79}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/19.44,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/19.49,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/44.43}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/29.41,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.52,k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_/10.84,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/12.86,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/16.21,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/48.87}
+\definecolor{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_}{RGB}{169,218,131}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_}{RGB}{231,52,53}
+\definecolor{k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_}{RGB}{254,142,27}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella}{RGB}{193,174,153}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas}{RGB}{225,216,153}
+\def\otuGenus{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/27.73,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.52,k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_/10.84,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/11.96,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/17.09,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/46.23}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/19.44,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/19.49,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/44.43}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/34.65,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.52,k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_/10.84,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/11.96,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/15.12,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/47.65}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/24.48,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/18.17,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/45.30}
+\definecolor{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_}{RGB}{169,218,131}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_}{RGB}{231,52,53}
+\definecolor{k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_}{RGB}{254,142,27}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella}{RGB}{193,174,153}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas}{RGB}{225,216,153}
+\def\otuGenus{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/27.73,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.52,k\_\_Bacteria;p\_\_Firmicutes;c\_\_Clostridia;o\_\_Clostridiales;f\_\_Lachnospiraceae;\_\_/10.84,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/11.96,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/17.09,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/46.23}
+\definecolor{color0}{RGB}{228,26,28}
+\definecolor{color1}{RGB}{55,126,184}
+\definecolor{color2}{RGB}{77,175,74}
+\definecolor{color3}{RGB}{152,78,163}
+\definecolor{color4}{RGB}{255,127,0}
+\def\Housing{color0/Littermate,color1/non-co-housed}
+\def\Strain{color4/GF WT,color3/IgAKO,color2/WT}
+
+
+    
+    % Colors for the hyperref package
+    \definecolor{urlcolor}{rgb}{0,.145,.698}
+    \definecolor{linkcolor}{rgb}{.71,0.21,0.01}
+    \definecolor{citecolor}{rgb}{.12,.54,.11}
+
+    % ANSI colors
+    \definecolor{ansi-black}{HTML}{3E424D}
+    \definecolor{ansi-black-intense}{HTML}{282C36}
+    \definecolor{ansi-red}{HTML}{E75C58}
+    \definecolor{ansi-red-intense}{HTML}{B22B31}
+    \definecolor{ansi-green}{HTML}{00A250}
+    \definecolor{ansi-green-intense}{HTML}{007427}
+    \definecolor{ansi-yellow}{HTML}{DDB62B}
+    \definecolor{ansi-yellow-intense}{HTML}{B27D12}
+    \definecolor{ansi-blue}{HTML}{208FFB}
+    \definecolor{ansi-blue-intense}{HTML}{0065CA}
+    \definecolor{ansi-magenta}{HTML}{D160C4}
+    \definecolor{ansi-magenta-intense}{HTML}{A03196}
+    \definecolor{ansi-cyan}{HTML}{60C6C8}
+    \definecolor{ansi-cyan-intense}{HTML}{258F8F}
+    \definecolor{ansi-white}{HTML}{C5C1B4}
+    \definecolor{ansi-white-intense}{HTML}{A1A6B2}
+    \definecolor{ansi-default-inverse-fg}{HTML}{FFFFFF}
+    \definecolor{ansi-default-inverse-bg}{HTML}{000000}
+
+    % commands and environments needed by pandoc snippets
+    % extracted from the output of `pandoc -s`
+    \providecommand{\tightlist}{%
+      \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+    % Add ',fontsize=\small' for more characters per line
+    \newenvironment{Shaded}{}{}
+    \newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+    \newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+    \newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+    \newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+    \newcommand{\RegionMarkerTok}[1]{{#1}}
+    \newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\NormalTok}[1]{{#1}}
+    
+    % Additional commands for more recent versions of Pandoc
+    \newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+    \newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+    \newcommand{\ImportTok}[1]{{#1}}
+    \newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+    \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+    \newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+    \newcommand{\BuiltInTok}[1]{{#1}}
+    \newcommand{\ExtensionTok}[1]{{#1}}
+    \newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+    \newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+    \newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    
+    
+    % Define a nice break command that doesn't care if a line doesn't already
+    % exist.
+    \def\br{\hspace*{\fill} \\* }
+    % Math Jax compatibility definitions
+    \def\gt{>}
+    \def\lt{<}
+    \let\Oldtex\TeX
+    \let\Oldlatex\LaTeX
+    \renewcommand{\TeX}{\textrm{\Oldtex}}
+    \renewcommand{\LaTeX}{\textrm{\Oldlatex}}
+    % Document parameters
+    % Document title
+    
+    
+    
+    
+
+    
+    % Prevent overflowing lines due to hard-to-break entities
+    \sloppy 
+    % Setup hyperref package
+    \hypersetup{
+      breaklinks=true,  % so long urls are correctly broken across lines
+      colorlinks=true,
+      urlcolor=urlcolor,
+      linkcolor=linkcolor,
+      citecolor=citecolor,
+      }
+    % Slightly bigger margins than the latex defaults
+    
+    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+    
+    
+
+\begin{document}
+    
+    \title{MMEDS Analysis Summary}\author{Clemente Lab}\affiliation{Icahn School of Medicine at Mount Sinai}
+
+\date{\today}
+\maketitle
+
+
+    
+    
+
+    
+    \hypertarget{table-statistics-summary}{%
+\section{Table Statistics Summary}\label{table-statistics-summary}}
+
+    \hypertarget{dada2-statistics}{%
+\subsection{Dada2 Statistics}\label{dada2-statistics}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_7_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+
+    The above plot represents number of input reads (total bar length) and
+retained (magenta) after quality control filtering, including denoising
+and chimera checking.
+
+    \pagebreak
+
+    \hypertarget{taxonomy-summary}{%
+\section{Taxonomy Summary}\label{taxonomy-summary}}
+
+    \hypertarget{interpreting-taxonomy-results}{%
+\subsection{Interpreting Taxonomy
+Results}\label{interpreting-taxonomy-results}}
+
+    Taxonomy plots represent the abundance of different taxa using stacked
+plots on a per-sample or per-group (averaged) basis. Data is normalized
+so that abundances per sample or per group add up to 100\%. When using
+group-based taxonomy plots, it should be noted that only average
+abundances are shown per group and taxa: this can induce visual biases
+when a small number of samples in a group have significantly higher
+abundance of a given taxa compared to the rest of samples in the group,
+and give the (incorrect) impression that the group as a whole has high
+high abundance of the taxa.
+
+    \hypertarget{phylum-level}{%
+\subsection{Phylum Level}\label{phylum-level}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_18_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Housing}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuPhylumHousing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the percentage of each sample belonging to
+particular taxon summarized at the Phylum level.
+
+    \pagebreak
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_25_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Strain}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuPhylumStrain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the percentage of each sample belonging to
+particular taxon summarized at the Phylum level.
+
+    \pagebreak
+
+    \hypertarget{genus-level}{%
+\subsection{Genus Level}\label{genus-level}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_34_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Housing}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuGenusHousing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the percentage of each sample belonging to
+particular taxon summarized at the Genus level.
+
+    \pagebreak
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_41_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Strain}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuGenusStrain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the percentage of each sample belonging to
+particular taxon summarized at the Genus level.
+
+    \pagebreak
+
+    \hypertarget{alpha-diversity}{%
+\section{Alpha Diversity}\label{alpha-diversity}}
+
+    \hypertarget{interpreting-alpha-diversity-results}{%
+\subsection{Interpreting Alpha Diversity
+Results}\label{interpreting-alpha-diversity-results}}
+
+    Alpha diversity estimates the amount of microbial diversity present in a
+sample or group of samples. There are several measures that can be used
+for alpha diversity, including observed features, Shannon's diversity or
+Faith's phylogenetic diversity. Because diversity estimates depend on
+the total number of sequences assigned to each sample, rarefaction
+curves are constructed to show the relation between alpha diversity (on
+the vertical axis) and sequencing depth (on the horizontal axis). Curves
+that gradually plateau as sequencing depth increases suggest that
+additional sequencing effort would not substantially yield additional
+results in terms of currently not observed diversity; curves that
+continue to increase suggest additional sequencing effort might be
+required to saturate the estimate.
+
+    \hypertarget{shannon-diversity}{%
+\subsection{Shannon Diversity}\label{shannon-diversity}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_52_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the average value of alpha diversity at each
+sampling depth. The error bars show the standard error within each
+group. Groups are determined by the metadata value in each category
+specified in the plot.
+
+    \pagebreak
+
+    \hypertarget{faiths-phylogenetic-diversity}{%
+\subsection{Faith's Phylogenetic
+Diversity}\label{faiths-phylogenetic-diversity}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_58_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the average value of alpha diversity at each
+sampling depth. The error bars show the standard error within each
+group. Groups are determined by the metadata value in each category
+specified in the plot.
+
+    \pagebreak
+
+    \hypertarget{observed-asv}{%
+\subsection{Observed ASV}\label{observed-asv}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_64_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the average value of alpha diversity at each
+sampling depth. The error bars show the standard error within each
+group. Groups are determined by the metadata value in each category
+specified in the plot.
+
+    \pagebreak
+
+    \hypertarget{beta-diversity}{%
+\section{Beta Diversity}\label{beta-diversity}}
+
+    \hypertarget{interpreting-beta-diversity-results}{%
+\subsection{Interpreting Beta Diversity
+Results}\label{interpreting-beta-diversity-results}}
+
+    Beta diversity estimates how similar or dissimilar samples are based on
+their microbiome composition. Different to alpha diversity, which is
+estimated per sample, beta diversity is a distance that is calculated
+between pairs of samples. Samples that are similar to each other in
+their microbiome composition will have a low distance between them based
+on beta diversity, while those that are very different in their
+composition will have a large distance. Principal Coordinate Analysis
+(PCoA) is an ordination technique that visually represents the samples
+based on their beta diversity distances to facilitate the identification
+of clusters or gradients of samples. By default, the first three
+principal coordinates are shown in PCoA plots.
+
+    \hypertarget{bray-curtis-grouped-by-housing}{%
+\subsection{Bray-Curtis, grouped by
+Housing}\label{bray-curtis-grouped-by-housing}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_74_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_76_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_77_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_78_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+    \hypertarget{bray-curtis-grouped-by-strain}{%
+\subsection{Bray-Curtis, grouped by
+Strain}\label{bray-curtis-grouped-by-strain}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_83_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_85_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_86_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_87_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+    \hypertarget{unweighted-unifrac-grouped-by-housing}{%
+\subsection{Unweighted UniFrac, grouped by
+Housing}\label{unweighted-unifrac-grouped-by-housing}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_92_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_94_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_95_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_96_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+    \hypertarget{unweighted-unifrac-grouped-by-strain}{%
+\subsection{Unweighted UniFrac, grouped by
+Strain}\label{unweighted-unifrac-grouped-by-strain}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_101_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_103_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_104_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_105_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+    \hypertarget{weighted-unifrac-grouped-by-housing}{%
+\subsection{Weighted UniFrac, grouped by
+Housing}\label{weighted-unifrac-grouped-by-housing}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_110_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_112_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_113_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_114_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+    \hypertarget{weighted-unifrac-grouped-by-strain}{%
+\subsection{Weighted UniFrac, grouped by
+Strain}\label{weighted-unifrac-grouped-by-strain}}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_119_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    The above plot represents the first three compenents created when
+performing Principle Component Analysis on the Beta diversity of the
+samples.
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_121_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_122_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{mkstapylton@gmail.com-mattS-qiime2_files/mkstapylton@gmail.com-mattS-qiime2_123_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+    \pagebreak
+
+
+    % Add a bibliography block to the postdoc
+    
+    
+\bibliography{references}
+
+    
+\end{document}

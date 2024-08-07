@@ -1,0 +1,82 @@
+[NbConvertApp] Converting notebook mkstapylton@gmail.com-mattS-qiime2.ipynb to latex
+[NbConvertApp] Executing notebook with kernel: jupyter
+[NbConvertApp] ERROR | Error while converting 'mkstapylton@gmail.com-mattS-qiime2.ipynb'
+Traceback (most recent call last):
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/nbconvertapp.py", line 410, in export_single_notebook
+    output, resources = self.exporter.from_filename(notebook_filename, resources=resources)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/exporter.py", line 179, in from_filename
+    return self.from_file(f, resources=resources, **kw)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/exporter.py", line 197, in from_file
+    return self.from_notebook_node(nbformat.read(file_stream, as_version=4), resources=resources, **kw)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/latex.py", line 88, in from_notebook_node
+    return super(LatexExporter, self).from_notebook_node(nb, resources, **kw)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/templateexporter.py", line 307, in from_notebook_node
+    nb_copy, resources = super(TemplateExporter, self).from_notebook_node(nb, resources, **kw)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/exporter.py", line 139, in from_notebook_node
+    nb_copy, resources = self._preprocess(nb_copy, resources)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/exporters/exporter.py", line 316, in _preprocess
+    nbc, resc = preprocessor(nbc, resc)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/preprocessors/base.py", line 47, in __call__
+    return self.preprocess(nb, resources)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/preprocessors/execute.py", line 405, in preprocess
+    nb, resources = super(ExecutePreprocessor, self).preprocess(nb, resources)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/preprocessors/base.py", line 69, in preprocess
+    nb.cells[index], resources = self.preprocess_cell(cell, resources, index)
+  File "/hpc/users/mmedsadmin/.admin_modules/jupyter/lib/python3.9/site-packages/nbconvert/preprocessors/execute.py", line 448, in preprocess_cell
+    raise CellExecutionError.from_cell_and_msg(cell, out)
+nbconvert.preprocessors.execute.CellExecutionError: An error occurred while executing the following cell:
+------------------
+from pathlib import Path
+from copy import deepcopy
+import pandas as pd
+import rpy2.rinterface
+from math import floor
+from warnings import filterwarnings
+from IPython.display import Image
+from random import shuffle
+from PIL import Image as PImage
+from PIL import ImageDraw, ImageFont
+from mmeds.util import load_config
+
+filterwarnings('ignore', category=rpy2.rinterface.RRuntimeWarning)
+
+# Load the configuration
+config = load_config(Path('config_file.yaml'), Path('metadata.tsv'), True)
+
+# Load metadata file
+if 'qiime2' == 'qiime2':
+    mdf = pd.read_csv('qiime_mapping_file.tsv', skiprows=[1], sep='\t', dtype={'#SampleID': 'str'})
+else:
+    mdf = pd.read_csv('qiime_mapping_file.tsv', sep='\t')
+mdf.set_index('#SampleID', inplace=True)
+
+# Load the columns to use for analysis
+metadata_columns = sorted(config['metadata'])
+metadata_discrete = sorted([x for x in config['metadata'] if not config['metadata_continuous'][x]])
+metadata_continuous = sorted([x for x in config['metadata'] if config['metadata_continuous'][x]])
+
+# Calculate needed number of discrete colors, equal to the number of values across all discrete variables
+max_colors = 0
+for group_name in metadata_discrete:
+    if group_name in mdf and not mdf[group_name].isnull().all():
+        grouping = mdf[group_name]
+        max_colors += grouping.nunique()
+
+all_colors = ['color{}'.format(i) for i in range(max_colors)]
+
+# Load the extention for jupyter
+%load_ext rpy2.ipython
+------------------
+
+[0;31m---------------------------------------------------------------------------[0m
+[0;31mModuleNotFoundError[0m                       Traceback (most recent call last)
+[0;32m<ipython-input-1-cc1669fb7db9>[0m in [0;36m<module>[0;34m[0m
+[1;32m      2[0m [0;32mfrom[0m [0mcopy[0m [0;32mimport[0m [0mdeepcopy[0m[0;34m[0m[0;34m[0m[0m
+[1;32m      3[0m [0;32mimport[0m [0mpandas[0m [0;32mas[0m [0mpd[0m[0;34m[0m[0;34m[0m[0m
+[0;32m----> 4[0;31m [0;32mimport[0m [0mrpy2[0m[0;34m.[0m[0mrinterface[0m[0;34m[0m[0;34m[0m[0m
+[0m[1;32m      5[0m [0;32mfrom[0m [0mmath[0m [0;32mimport[0m [0mfloor[0m[0;34m[0m[0;34m[0m[0m
+[1;32m      6[0m [0;32mfrom[0m [0mwarnings[0m [0;32mimport[0m [0mfilterwarnings[0m[0;34m[0m[0;34m[0m[0m
+
+[0;31mModuleNotFoundError[0m: No module named 'rpy2'
+ModuleNotFoundError: No module named 'rpy2'
+

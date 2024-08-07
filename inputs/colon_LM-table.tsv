@@ -1,0 +1,47 @@
+# Constructed from biom file
+#OTU ID	CG01-1	CG02-2	CG03-3	CG04-4	CG05-5	CG06-6	CG07-7	CG08-8	CG09-9	CG10-10	CG11-11	CG12-12	CG13-13
+k__Bacteria;__;__;__;__;__	8.0	0.0	0.0	0.0	0.0	196.0	13.0	177.0	0.0	69.0	0.0	0.0	132.0
+k__Bacteria;p__Actinobacteria;c__Actinobacteria;o__Bifidobacteriales;f__Bifidobacteriaceae;g__Bifidobacterium	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	243.0	0.0
+k__Bacteria;p__Actinobacteria;c__Coriobacteriia;o__Coriobacteriales;f__Coriobacteriaceae;g__	0.0	0.0	66.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	173.0	32.0
+k__Bacteria;p__Actinobacteria;c__Coriobacteriia;o__Coriobacteriales;f__Coriobacteriaceae;g__Adlercreutzia	0.0	0.0	0.0	0.0	57.0	71.0	0.0	0.0	50.0	119.0	86.0	0.0	0.0
+k__Bacteria;p__Bacteroidetes;__;__;__;__	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	46.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__;g__	52.0	0.0	0.0	55.0	46.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__Bacteroidaceae;g__Bacteroides	730.0	0.0	0.0	263.0	45.0	220.0	695.0	269.0	468.0	371.0	274.0	80.0	263.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__Porphyromonadaceae;g__Parabacteroides	15.0	45.0	0.0	0.0	0.0	46.0	0.0	92.0	14.0	0.0	28.0	62.0	21.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__Prevotellaceae;g__Prevotella	567.0	160.0	38.0	0.0	113.0	86.0	887.0	201.0	133.0	80.0	142.0	0.0	238.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__Rikenellaceae;g__	543.0	559.0	0.0	117.0	46.0	76.0	972.0	700.0	180.0	0.0	339.0	200.0	0.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__Rikenellaceae;g__AF12	0.0	0.0	0.0	32.0	0.0	0.0	29.0	0.0	0.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__S24-7;g__	355.0	578.0	231.0	119.0	399.0	1306.0	655.0	479.0	878.0	1095.0	1323.0	822.0	1517.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__[Odoribacteraceae];g__Odoribacter	0.0	363.0	92.0	118.0	92.0	748.0	151.0	187.0	51.0	6.0	297.0	0.0	0.0
+k__Bacteria;p__Bacteroidetes;c__Bacteroidia;o__Bacteroidales;f__[Paraprevotellaceae];g__[Prevotella]	0.0	0.0	233.0	569.0	0.0	266.0	0.0	591.0	0.0	0.0	0.0	0.0	798.0
+k__Bacteria;p__Cyanobacteria;c__4C0d-2;o__YS2;f__;g__	38.0	18.0	0.0	30.0	0.0	0.0	34.0	0.0	0.0	0.0	0.0	57.0	43.0
+k__Bacteria;p__Deferribacteres;c__Deferribacteres;o__Deferribacterales;f__Deferribacteraceae;g__Mucispirillum	0.0	53.0	26.0	0.0	0.0	136.0	50.0	0.0	0.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Bacilli;o__Bacillales;f__Staphylococcaceae;g__Jeotgalicoccus	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	9.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Bacilli;o__Lactobacillales;f__Lactobacillaceae;g__Lactobacillus	1296.0	0.0	1584.0	702.0	139.0	610.0	919.0	64.0	657.0	55.0	210.0	754.0	285.0
+k__Bacteria;p__Firmicutes;c__Bacilli;o__Turicibacterales;f__Turicibacteraceae;g__Turicibacter	0.0	0.0	249.0	0.0	0.0	0.0	0.0	0.0	165.0	50.0	0.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;__;__	61.0	1319.0	2135.0	1189.0	1225.0	1971.0	333.0	504.0	1658.0	520.0	638.0	813.0	799.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__;g__	702.0	761.0	482.0	865.0	193.0	146.0	115.0	326.0	585.0	153.0	187.0	245.0	350.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;g__Candidatus Arthromitus	334.0	0.0	31.0	0.0	0.0	0.0	0.0	332.0	0.0	464.0	386.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;g__Clostridium	0.0	0.0	0.0	0.0	0.0	0.0	0.0	17.0	0.0	0.0	0.0	15.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Dehalobacteriaceae;g__Dehalobacterium	59.0	97.0	0.0	155.0	120.0	0.0	0.0	76.0	89.0	58.0	71.0	49.0	133.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Lachnospiraceae;__	2076.0	2241.0	3552.0	2569.0	1921.0	3273.0	1111.0	816.0	2410.0	2625.0	2192.0	1658.0	1871.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Lachnospiraceae;g__	271.0	1081.0	772.0	683.0	361.0	566.0	423.0	249.0	393.0	185.0	273.0	124.0	537.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Lachnospiraceae;g__Coprococcus	0.0	150.0	402.0	0.0	217.0	0.0	0.0	143.0	0.0	0.0	0.0	223.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Lachnospiraceae;g__Roseburia	369.0	291.0	133.0	194.0	284.0	193.0	0.0	234.0	0.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Lachnospiraceae;g__[Ruminococcus]	0.0	578.0	583.0	871.0	500.0	0.0	273.0	675.0	413.0	426.0	289.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Ruminococcaceae;__	224.0	503.0	743.0	16.0	67.0	301.0	0.0	99.0	190.0	32.0	116.0	89.0	160.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Ruminococcaceae;g__	0.0	0.0	45.0	0.0	55.0	103.0	39.0	37.0	0.0	90.0	0.0	22.0	0.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Ruminococcaceae;g__Anaerotruncus	75.0	0.0	256.0	62.0	0.0	299.0	0.0	0.0	66.0	0.0	0.0	40.0	95.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Ruminococcaceae;g__Oscillospira	482.0	134.0	493.0	400.0	656.0	765.0	277.0	0.0	372.0	248.0	210.0	0.0	282.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Ruminococcaceae;g__Ruminococcus	80.0	432.0	362.0	44.0	118.0	152.0	0.0	249.0	0.0	167.0	0.0	177.0	444.0
+k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__[Mogibacteriaceae];g__	31.0	41.0	51.0	53.0	35.0	0.0	0.0	0.0	25.0	0.0	43.0	0.0	12.0
+k__Bacteria;p__Firmicutes;c__Erysipelotrichi;o__Erysipelotrichales;f__Erysipelotrichaceae;g__	9.0	0.0	23.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	19.0	0.0	0.0
+k__Bacteria;p__Firmicutes;c__Erysipelotrichi;o__Erysipelotrichales;f__Erysipelotrichaceae;g__Allobaculum	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	43.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__RF32;f__;g__	0.0	0.0	0.0	0.0	0.0	23.0	0.0	29.0	0.0	0.0	0.0	0.0	17.0
+k__Bacteria;p__Proteobacteria;c__Betaproteobacteria;o__Burkholderiales;f__Alcaligenaceae;g__Sutterella	33.0	37.0	48.0	55.0	0.0	0.0	33.0	68.0	84.0	173.0	195.0	152.0	120.0
+k__Bacteria;p__Proteobacteria;c__Deltaproteobacteria;o__Desulfovibrionales;f__Desulfovibrionaceae;g__	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	38.0	50.0
+k__Bacteria;p__Proteobacteria;c__Deltaproteobacteria;o__Desulfovibrionales;f__Desulfovibrionaceae;g__Bilophila	0.0	33.0	0.0	70.0	58.0	60.0	0.0	0.0	0.0	44.0	0.0	0.0	36.0
+k__Bacteria;p__Proteobacteria;c__Deltaproteobacteria;o__Desulfovibrionales;f__Desulfovibrionaceae;g__Desulfovibrio	0.0	0.0	346.0	412.0	205.0	0.0	0.0	198.0	0.0	0.0	155.0	0.0	0.0
+k__Bacteria;p__Proteobacteria;c__Epsilonproteobacteria;o__Campylobacterales;f__Helicobacteraceae;g__Helicobacter	0.0	182.0	0.0	0.0	72.0	0.0	33.0	0.0	26.0	67.0	0.0	90.0	99.0
+k__Bacteria;p__Proteobacteria;c__Gammaproteobacteria;o__Alteromonadales;f__Shewanellaceae;g__Shewanella	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	81.0	0.0	0.0	0.0	0.0
+k__Bacteria;p__TM7;c__TM7-3;o__CW040;f__F16;g__	73.0	0.0	0.0	113.0	161.0	110.0	0.0	160.0	0.0	57.0	0.0	0.0	0.0

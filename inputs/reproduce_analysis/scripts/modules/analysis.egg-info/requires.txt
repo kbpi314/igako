@@ -1,0 +1,10 @@
+numpy
+scipy
+click
+pandas
+matplotlib
+seaborn
+pytest
+coverage
+pytest-cov
+pytest-pudb

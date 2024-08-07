@@ -1,0 +1,310 @@
+((*- extends 'article.tplx' -*))
+
+% See http://blog.juliusschulz.de/blog/ultimate-ipython-notebook#templates
+% for some useful tips
+
+%===============================================================================
+% Document class
+%===============================================================================
+
+((* block docclass *))
+\documentclass[10pt,notitlepage,onecolumn,aps,pra]{revtex4-1}
+((* endblock docclass *))
+
+%===============================================================================
+% Packages
+%===============================================================================
+
+((* block packages *))
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+% We will generate all images so they have a width \maxwidth. This means
+% that they will get their normal width if they fit onto the page, but
+% are scaled down if they would overflow the margins.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+\else\Gin@nat@width\fi}
+\makeatother
+\let\Oldincludegraphics\includegraphics
+% Set max figure width to be 80% of text width, for now hardcoded.
+\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=.8\maxwidth]{#1}}
+% Ensure that by default, figures have no caption (until we provide a
+% proper Figure object with a Caption API and a way to capture that
+% in the conversion process - todo).
+\usepackage{caption}
+\DeclareCaptionLabelFormat{nolabel}{}
+\captionsetup{labelformat=nolabel}
+
+\usepackage{adjustbox} % Used to constrain images to a maximum size
+\usepackage{xcolor} % Allow colors to be defined
+\usepackage{enumerate} % Needed for markdown enumerations to work
+\usepackage{geometry} % Used to adjust the document margins
+\usepackage{amsmath} % Equations
+\usepackage{amssymb} % Equations
+\usepackage{textcomp} % defines textquotesingle
+% Hack from http://tex.stackexchange.com/a/47451/13684:
+\AtBeginDocument{%
+    \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+}
+\usepackage{upquote} % Upright quotes for verbatim code
+\usepackage{eurosym} % defines \euro
+\usepackage[mathletters]{ucs} % Extended unicode (utf-8) support
+\usepackage[utf8x]{inputenc} % Allow utf-8 characters in the tex document
+\usepackage{fancyvrb} % verbatim replacement that allows latex
+\usepackage{grffile} % extends the file name processing of package graphics
+                     % to support a larger range
+% The hyperref package gives us a pdf with properly built
+% internal navigation ('pdf bookmarks' for the table of contents,
+% internal cross-reference links, web links for URLs, etc.)
+\usepackage{hyperref}
+\usepackage{booktabs}  % table support for pandoc > 1.12.2
+\usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+\usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                            % normalem makes italics be italics, not underlines
+\usepackage{braket}
+
+\usepackage{titlesec}
+\usepackage{alphalph}
+\usepackage{pgffor}
+\renewcommand*{\thesubsection}{
+    \alphalph{\value{subsection}}
+}
+\newcommand\crule[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/28.14,k\_\_Bacteria;p\_\_OD1/12.19,k\_\_Bacteria;p\_\_Proteobacteria/67.19}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/20.38,k\_\_Bacteria;p\_\_Proteobacteria/70.21}
+\def\otuPhylumHousing{k\_\_Bacteria;\_\_/24.75,k\_\_Bacteria;p\_\_Bacteroidetes/13.44,k\_\_Bacteria;p\_\_Firmicutes/12.32,k\_\_Bacteria;p\_\_OD1/38.39,k\_\_Bacteria;p\_\_Proteobacteria/69.80}
+\definecolor{k\_\_Bacteria;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes}{RGB}{82,175,67}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes}{RGB}{240,108,69}
+\definecolor{k\_\_Bacteria;p\_\_OD1}{RGB}{237,143,71}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria}{RGB}{178,148,199}
+\def\otuPhylum{k\_\_Bacteria;\_\_/25.23,k\_\_Bacteria;p\_\_Bacteroidetes/13.44,k\_\_Bacteria;p\_\_Firmicutes/12.32,k\_\_Bacteria;p\_\_OD1/29.66,k\_\_Bacteria;p\_\_Proteobacteria/68.99}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/20.38,k\_\_Bacteria;p\_\_Proteobacteria/70.21}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/28.78,k\_\_Bacteria;p\_\_Bacteroidetes/13.44,k\_\_Bacteria;p\_\_Firmicutes/12.93,k\_\_Bacteria;p\_\_OD1/29.66,k\_\_Bacteria;p\_\_Proteobacteria/68.25}
+\def\otuPhylumStrain{k\_\_Bacteria;\_\_/23.68,k\_\_Bacteria;p\_\_Firmicutes/10.52,k\_\_Bacteria;p\_\_Proteobacteria/69.37}
+\definecolor{k\_\_Bacteria;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes}{RGB}{82,175,67}
+\definecolor{k\_\_Bacteria;p\_\_Firmicutes}{RGB}{240,108,69}
+\definecolor{k\_\_Bacteria;p\_\_OD1}{RGB}{237,143,71}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria}{RGB}{178,148,199}
+\def\otuPhylum{k\_\_Bacteria;\_\_/25.23,k\_\_Bacteria;p\_\_Bacteroidetes/13.44,k\_\_Bacteria;p\_\_Firmicutes/12.32,k\_\_Bacteria;p\_\_OD1/29.66,k\_\_Bacteria;p\_\_Proteobacteria/68.99}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/28.14,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/11.34,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/20.42,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/41.64}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/20.38,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/22.30,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/40.75}
+\def\otuGenusHousing{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/24.75,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.63,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/37.83,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/16.24,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/48.98}
+\definecolor{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_}{RGB}{166,217,129}
+\definecolor{k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_}{RGB}{254,145,32}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella}{RGB}{190,171,153}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas}{RGB}{223,214,153}
+\def\otuGenus{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/25.23,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.63,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/29.00,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/18.70,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/45.39}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/20.38,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/22.30,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/40.75}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/28.78,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.63,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/29.00,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/17.02,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/48.39}
+\def\otuGenusStrain{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/23.68,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/18.73,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/43.74}
+\definecolor{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_}{RGB}{166,206,227}
+\definecolor{k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_}{RGB}{166,217,129}
+\definecolor{k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_}{RGB}{254,145,32}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella}{RGB}{190,171,153}
+\definecolor{k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas}{RGB}{223,214,153}
+\def\otuGenus{k\_\_Bacteria;\_\_;\_\_;\_\_;\_\_;\_\_/25.23,k\_\_Bacteria;p\_\_Bacteroidetes;c\_\_Bacteroidia;o\_\_Bacteroidales;f\_\_S24-7;g\_\_/12.63,k\_\_Bacteria;p\_\_OD1;c\_\_;o\_\_;f\_\_;g\_\_/29.00,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Alteromonadales;f\_\_Shewanellaceae;g\_\_Shewanella/18.70,k\_\_Bacteria;p\_\_Proteobacteria;c\_\_Gammaproteobacteria;o\_\_Oceanospirillales;f\_\_Halomonadaceae;g\_\_Halomonas/45.39}
+\definecolor{color0}{RGB}{228,26,28}
+\definecolor{color1}{RGB}{55,126,184}
+\definecolor{color2}{RGB}{77,175,74}
+\definecolor{color3}{RGB}{152,78,163}
+\definecolor{color4}{RGB}{255,127,0}
+\definecolor{color5}{RGB}{255,255,51}
+\definecolor{color6}{RGB}{166,86,40}
+\def\Housing{color0/Littermate,color1/non-co-housed}
+\def\Strain{color4/GF WT,color3/IgAKO,color2/WT}
+((* endblock packages *))
+
+%===============================================================================
+% Title Page
+%===============================================================================
+
+((* set cell_style = 'style_bw_python.tplx' *))
+((* block title -*))
+((*- endblock title *))
+((* block author -*))
+((* endblock author *))
+
+((* block maketitle *))
+
+((*- if nb.metadata.get("latex_metadata", {}).get("title", ""): -*))
+\title{((( nb.metadata["latex_metadata"]["title"] )))}
+((*- else -*))
+\title{((( resources.metadata.name | ascii_only | escape_latex )))}
+((*- endif *))
+
+((*- if nb.metadata.get("latex_metadata", {}).get("author", ""): -*))
+\author{((( nb.metadata["latex_metadata"]["author"] )))}
+((*- else -*))
+\author{Michael Goerz}
+((*- endif *))
+
+((*- if nb.metadata.get("latex_metadata", {}).get("affiliation", ""): -*))
+\affiliation{((( nb.metadata["latex_metadata"]["affiliation"] )))}
+((*- endif *))
+
+\date{\today}
+\maketitle
+
+((* endblock maketitle *))
+
+
+%===============================================================================
+% Input
+%===============================================================================
+
+% Input cells can be hidden using the "Hide input" and "Hide input all"
+% nbextensions (which set the hide_input metadata flags)
+
+((* block input scoped *))
+((*- if cell.metadata.hide_input or nb.metadata.hide_input: -*))
+((*- else -*))
+   ((( custom_add_prompt(cell.source | wrap_text(88) | highlight_code(strip_verbatim=True), cell, 'In ', 'incolor') )))
+((*- endif -*))
+((* endblock input *))
+
+
+%===============================================================================
+% Output
+%===============================================================================
+
+% Display stream output with coloring
+((* block stream *))
+    \begin{Verbatim}[commandchars=\\\{\}]
+((( output.text | wrap_text(86) | escape_latex | ansi2latex )))
+    \end{Verbatim}
+((* endblock stream *))
+
+((* block output_group -*))
+((*- if cell.metadata.hide_output: -*))
+((*- else -*))
+    ((( super() )))
+((*- endif -*))
+((*- if cell.metadata.page_break: -*))
+    \clearpage
+((*- endif -*))
+((*- if cell.metadata.Phylum: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuPhylum {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.PhylumHousing: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Housing}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuPhylumHousing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.PhylumStrain: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Strain}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuPhylumStrain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.Genus: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuGenus {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.GenusHousing: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Housing}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuGenusHousing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.GenusStrain: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend grouped by Strain}\\
+    \texttt{Color\hspace{3mm}Abundance\hspace{3mm}OTU} \\
+    \vspace{3mm}%
+    \foreach \A / \B in \otuGenusStrain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{5mm} \texttt{\B\%\hspace{8mm}\A}\\
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.Housing: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Housing}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Housing {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((*- if cell.metadata.Strain: -*))
+\vspace{5mm}%
+{\raggedright{}%
+    \texttt{Legend for Strain}\\
+    \texttt{Color\hspace{3mm}Metadata}\\
+    \vspace{3mm}%
+    \foreach \A / \B in \Strain {
+        \hspace{1mm}\crule[\A]{5mm}{5mm}\hspace{7mm}\texttt{\B}\\%
+    }
+}%
+\vspace{5mm}%
+((*- endif -*))
+((* endblock output_group *))
+
+%==============================================================================
+% Define macro custom_add_prompt() (derived from add_prompt() macro in style_ipython.tplx)
+%==============================================================================
+
+((* macro custom_add_prompt(text, cell, prompt, prompt_color) -*))
+    ((*- if cell.execution_count is defined -*))
+    ((*- set execution_count = "" ~ (cell.execution_count | replace(None, " ")) -*))
+    ((*- else -*))
+    ((*- set execution_count = " " -*))
+    ((*- endif -*))
+    ((*- set indention =  " " * (execution_count | length + 7) -*))
+\begin{Verbatim}[commandchars=\\\{\}]
+((( text | add_prompts(first='{\color{' ~ prompt_color ~ '}' ~ prompt ~ '[{\\color{' ~ prompt_color ~ '}' ~ execution_count ~ '}]:} ', cont=indention) )))
+\end{Verbatim}
+((*- endmacro *))
+
+%==============================================================================
+% Bibliography
+%==============================================================================
+
+% Insert citations in markdown as e.g.
+%    <cite data-cite="DevoretS2013">[DevoretS2013]</cite>
+% requires file references.bib in current directory (or the file set as "bib" in the latex_metadata)
+
+((* block bibliography *))
+\bibliography{((( nb.metadata.get("latex_metadata", {}).get("bib", "references") )))}
+((* endblock bibliography *))

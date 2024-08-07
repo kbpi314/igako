@@ -1,0 +1,2616 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6a07d587",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "from pathlib import Path\n",
+    "from copy import deepcopy\n",
+    "import pandas as pd\n",
+    "import rpy2.rinterface\n",
+    "from math import floor\n",
+    "from warnings import filterwarnings\n",
+    "from IPython.display import Image\n",
+    "from random import shuffle\n",
+    "from PIL import Image as PImage\n",
+    "from PIL import ImageDraw, ImageFont\n",
+    "from mmeds.util import load_config\n",
+    "\n",
+    "filterwarnings('ignore', category=rpy2.rinterface.RRuntimeWarning)\n",
+    "\n",
+    "# Load the configuration\n",
+    "config = load_config(Path('config_file.yaml'), Path('metadata.tsv'), True)\n",
+    "\n",
+    "# Load metadata file\n",
+    "if 'qiime2' == 'qiime2':\n",
+    "    mdf = pd.read_csv('qiime_mapping_file.tsv', skiprows=[1], sep='\\t', dtype={'#SampleID': 'str'})\n",
+    "else:\n",
+    "    mdf = pd.read_csv('qiime_mapping_file.tsv', sep='\\t')\n",
+    "mdf.set_index('#SampleID', inplace=True)\n",
+    "\n",
+    "# Load the columns to use for analysis\n",
+    "metadata_columns = sorted(config['metadata'])\n",
+    "metadata_discrete = sorted([x for x in config['metadata'] if not config['metadata_continuous'][x]])\n",
+    "metadata_continuous = sorted([x for x in config['metadata'] if config['metadata_continuous'][x]])\n",
+    "\n",
+    "# Calculate needed number of discrete colors, equal to the number of values across all discrete variables\n",
+    "max_colors = 0\n",
+    "for group_name in metadata_discrete:\n",
+    "    if group_name in mdf and not mdf[group_name].isnull().all():\n",
+    "        grouping = mdf[group_name]\n",
+    "        max_colors += grouping.nunique()\n",
+    "\n",
+    "all_colors = ['color{}'.format(i) for i in range(max_colors)]\n",
+    "\n",
+    "# Load the extention for jupyter\n",
+    "%load_ext rpy2.ipython"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c7b5e31c",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i all_colors -o allRGB\n",
+    "library(ggplot2)\n",
+    "library(RColorBrewer)\n",
+    "library(GGally)\n",
+    "library(ggrepel)\n",
+    "\n",
+    "# Create custom color palette from brewer \"Set1\"\n",
+    "myColors <- brewer.pal(8, \"Set1\")\n",
+    "\n",
+    "# Extrapolate extra colors only if number of vars exceeds the number of colors in the initial palette\n",
+    "if (length(myColors) >= length(unique(all_colors))) {\n",
+    "    allColors <- myColors[0 : length(unique(all_colors))]\n",
+    "} else {\n",
+    "    colorMaker <- colorRampPalette(myColors)\n",
+    "    allColors <- colorMaker(length(unique(all_colors)))\n",
+    "}\n",
+    "\n",
+    "# Rename the colors to match with the groups\n",
+    "names(allColors) <- all_colors\n",
+    "\n",
+    "# Create the objects for graphing with the colors\n",
+    "colScale <- scale_color_manual(name = ~GroupID, values = allColors)\n",
+    "colFill <- scale_fill_manual(name = ~GroupID, values = allColors)\n",
+    "\n",
+    "# Rename the colors to match with the groups\n",
+    "# Get the RGB values for the colors\n",
+    "allRGB <- data.frame(apply(data.frame(allColors), 1, col2rgb))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1a4e4e7a",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Assign colors to discrete values\n",
+    "color_maps = {}\n",
+    "color_max = 0\n",
+    "for group_name in metadata_discrete:\n",
+    "    if not mdf[group_name].isnull().all():\n",
+    "        grouping = mdf[group_name]\n",
+    "        color_maps[group_name] = {str(x):'color{}'.format(color_max + i)\n",
+    "                                      for i, x in enumerate(grouping.drop_duplicates())} \n",
+    "        color_max += grouping.nunique() # Unique grouping vals"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdabe5c1",
+   "metadata": {},
+   "source": [
+    "# Table Statistics Summary"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1374c056",
+   "metadata": {},
+   "source": [
+    "## Dada2 Statistics"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "411f28fc",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv('stats.tsv', sep='\\t', header=0, skiprows=[1])\n",
+    "data = []\n",
+    "m = 0\n",
+    "# Split rows into five categories\n",
+    "for i in range(len(df['sample-id'])):\n",
+    "    _input = df['input'][i]\n",
+    "    _filtered = df['filtered'][i]\n",
+    "    _denoised = df['denoised'][i]\n",
+    "    _merged = df['merged'][i]\n",
+    "    _nonchimeric = df['non-chimeric'][i]\n",
+    "    # Store maximum\n",
+    "    if _input > m:\n",
+    "        m = _input\n",
+    "    # Order sections so less filtered goes at the top\n",
+    "    data.append([df['sample-id'][i], _input - _filtered, \"a\"])\n",
+    "    data.append([df['sample-id'][i], _filtered - _denoised, \"b\"])\n",
+    "    data.append([df['sample-id'][i], _denoised - _merged, \"c\"])\n",
+    "    data.append([df['sample-id'][i], _merged - _nonchimeric, \"d\"])\n",
+    "    data.append([df['sample-id'][i], _nonchimeric, \"e\"])\n",
+    "df = pd.DataFrame(data, columns=['variable', 'value', \"type\"])\n",
+    "# Set count to number of desired y-axis values-1\n",
+    "count = 5\n",
+    "# Create discrete y-axis values\n",
+    "breaks = pd.Series([int(i*(m/count)) for i in range(count+1)])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2baa515a",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df -i breaks\n",
+    "p <- ggplot(df, aes(x = reorder(variable, -value), y = value, fill = type)) +\n",
+    "     geom_bar(stat = 'identity') +\n",
+    "     labs(x = \"Sample ID\",\n",
+    "          title = 'Table Read Retention') +\n",
+    "     scale_y_discrete(name = \"Read Count\",\n",
+    "                      limit = as.vector(breaks),\n",
+    "                      expand = c(0, 0)) +\n",
+    "     scale_fill_discrete(name = \"Removed During\",\n",
+    "                         labels=c(\"Filtering\", \"Denoising\", \"Merging\", \"Chimera Filtering\", \"Retained\")) +\n",
+    "     theme_bw() + \n",
+    "     theme(text = element_text(size = 8.5,\n",
+    "                               face = \"bold\"),\n",
+    "           element_line(size = 0.1),\n",
+    "           legend.position = \"bottom\",\n",
+    "           axis.text.x = element_text(angle = 290, hjust = 0),\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "     guides(fill = guide_legend(nrow = 1))\n",
+    "\n",
+    "ggsave(\"table_stats.png\", height=6, width=8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "444b3732",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image('table_stats.png')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "515ce2f2",
+   "metadata": {},
+   "source": [
+    "The above plot represents number of input reads (total bar length) and retained (magenta) after quality control filtering, including denoising and chimera checking."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6b2ecabd",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8fb7ad27",
+   "metadata": {},
+   "source": [
+    "# Taxonomy Summary"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "201fe607",
+   "metadata": {},
+   "source": [
+    "## Interpreting Taxonomy Results"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "a0ad4bef",
+   "metadata": {},
+   "source": [
+    "Taxonomy plots represent the abundance of different taxa using stacked plots on a per-sample or per-group (averaged) basis. Data is normalized so that abundances per sample or per group add up to 100%. When using group-based taxonomy plots, it should be noted that only average abundances are shown per group and taxa: this can induce visual biases when a small number of samples in a group have significantly higher abundance of a given taxa compared to the rest of samples in the group, and give the (incorrect) impression that the group as a whole has high high abundance of the taxa."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ffe10383",
+   "metadata": {},
+   "source": [
+    "## Phylum Level"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "19281b1d",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv('level-2.csv', sep=',')\n",
+    "# Remove unnecessary metadata\n",
+    "headers = list(filter(lambda x: 'k__' in x, df.columns)) + ['index']\n",
+    "df = df.filter(headers).set_index('index').T\n",
+    "# Calculate relative abundances\n",
+    "df = df.apply(lambda x: x / x.sum(), axis='index')\n",
+    "# Transpose the dataframe and convert to long format\n",
+    "df = df.T.reset_index(level=0).melt('index')\n",
+    "# Rename the columns\n",
+    "df.rename({'index': 'variable', 'variable': 'X.OTU.ID'}, axis='columns', inplace=True)\n",
+    "df = df.astype({'variable': 'str'})\n",
+    "# Modify the metadata\n",
+    "mdf_lite = mdf.reset_index()\n",
+    "mdf_lite = mdf_lite[['#SampleID', 'Housing']].rename({'#SampleID': 'variable'}, axis='columns')\n",
+    "# Merge with the data\n",
+    "df = df.merge(mdf_lite, how='inner')\n",
+    "df.Housing = df.Housing.astype(str)\n",
+    "# Add colors for plotting\n",
+    "otu_max_colors_Phylum = sorted(df['X.OTU.ID'].unique())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d663727a",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i otu_max_colors_Phylum -o otuAllRGBPhylum\n",
+    "\n",
+    "# Create custom color palette\n",
+    "otuColorsPhylum <- brewer.pal(12, \"Paired\")\n",
+    "otuColorMakerPhylum <- colorRampPalette(otuColorsPhylum)\n",
+    "otuAllColorsPhylum <- otuColorMakerPhylum(length(otu_max_colors_Phylum))\n",
+    "names(otuAllColorsPhylum) <- otu_max_colors_Phylum\n",
+    "# Create the functions for applying it to plots\n",
+    "otuColScalePhylum <- scale_color_manual(name = ~X.OTU.ID, values = otuAllColorsPhylum)\n",
+    "otuColFillPhylum <- scale_fill_manual(name = ~X.OTU.ID, values = otuAllColorsPhylum)\n",
+    "# Get the RGB values for the colors\n",
+    "otuAllRGBPhylum <- data.frame(apply(data.frame(otuAllColorsPhylum), 1, col2rgb))\n",
+    "names(otuAllRGBPhylum) <- otu_max_colors_Phylum"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "931c5dcf",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "# Filter by abundance\n",
+    "filtered_df = df[df.value > float(config['abundance_threshold'])]\n",
+    "\n",
+    "groups = filtered_df.groupby('Housing')\n",
+    "latex = []\n",
+    "for name, group in groups:\n",
+    "    # Get the means for each group\n",
+    "    means = group.groupby('X.OTU.ID').mean()\n",
+    "    line_latex = []\n",
+    "    for row in means.itertuples():\n",
+    "        perc = 100 * float(row.value)\n",
+    "        # Align sample names\n",
+    "        if perc < 10:\n",
+    "            line_text = '{}/ {:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        else:\n",
+    "            line_text = '{}/{:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        line_latex.append(line_text)\n",
+    "    latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuPhylumHousing',\n",
+    "                                                          colors=','.join(line_latex)))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9f99bf00",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "p <- ggplot(df, aes(x = variable, y = value, fill = X.OTU.ID)) +\n",
+    "     geom_bar(stat = \"identity\") +\n",
+    "     labs(x = \"Sample ID\",\n",
+    "          title = 'Taxa Summary',\n",
+    "          subtitle = 'Grouped by Housing') +\n",
+    "     scale_y_discrete(name = \"OTU Percentage\",\n",
+    "                      limits = c(0, 1),\n",
+    "                      expand = c(0, 0)) +\n",
+    "     theme(text = element_text(size = 8.5,\n",
+    "                               face = \"bold\"),\n",
+    "           element_line(size = 0.1),\n",
+    "           legend.position = \"none\",\n",
+    "           axis.text.x = element_text(angle = 290, hjust = 0),\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "     guides(fill = guide_legend(ncol = 4)) +\n",
+    "     facet_grid(~Housing, scales = \"free\", space = \"free\") +\n",
+    "     otuColScalePhylum + otuColFillPhylum\n",
+    "\n",
+    "ggsave(\"level-2-Housing.png\", height = 6, width = 8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d4d8c04b",
+   "metadata": {
+    "PhylumHousing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"level-2-Housing.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "411f58f8",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "\n",
+    "# Get the mean percentage of each taxon\n",
+    "otu_percs = df[df.value > float(config['abundance_threshold'])].groupby('X.OTU.ID').mean()\n",
+    "\n",
+    "entries = []\n",
+    "# Remove duplicate values\n",
+    "for row in otu_percs.itertuples():\n",
+    "    otu = row.Index\n",
+    "\n",
+    "    # Get the color\n",
+    "    RGB = tuple(otuAllRGBPhylum[otu])\n",
+    "\n",
+    "    # Align sample names\n",
+    "    perc = 100 * float(otu_percs.loc[otu]['value'])\n",
+    "    if perc < 1:\n",
+    "        perc_text = '<0.01'\n",
+    "    elif perc < 10:\n",
+    "        perc_text = ' {:.2f}'.format(perc)\n",
+    "    else:\n",
+    "        perc_text = '{:.2f}'.format(perc)\n",
+    "\n",
+    "    entries.append([otu, RGB, perc_text])\n",
+    "\n",
+    "\n",
+    "# Create the latex for the legends\n",
+    "latex = []\n",
+    "colors = []\n",
+    "for key, value, perc in entries:\n",
+    "    latex.append('\\\\definecolor{{{key}}}{{RGB}}{{{r},{g},{b}}}\\n'.format(key=key.replace('_', '\\_'),\n",
+    "                                                                      r=value[0],\n",
+    "                                                                      g=value[1],\n",
+    "                                                                      b=value[2]\n",
+    "                                                                     ))\n",
+    "    colors.append('{}/{}'.format(key.replace('_', '\\_'), perc))\n",
+    "\n",
+    "\n",
+    "latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuPhylum',\n",
+    "                                                      colors=','.join(colors)))\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "147f659a",
+   "metadata": {},
+   "source": [
+    "The above plot represents the percentage of each sample belonging to particular taxon summarized at the Phylum level."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "db3c0f7f",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "11850158",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv('level-2.csv', sep=',')\n",
+    "# Remove unnecessary metadata\n",
+    "headers = list(filter(lambda x: 'k__' in x, df.columns)) + ['index']\n",
+    "df = df.filter(headers).set_index('index').T\n",
+    "# Calculate relative abundances\n",
+    "df = df.apply(lambda x: x / x.sum(), axis='index')\n",
+    "# Transpose the dataframe and convert to long format\n",
+    "df = df.T.reset_index(level=0).melt('index')\n",
+    "# Rename the columns\n",
+    "df.rename({'index': 'variable', 'variable': 'X.OTU.ID'}, axis='columns', inplace=True)\n",
+    "df = df.astype({'variable': 'str'})\n",
+    "# Modify the metadata\n",
+    "mdf_lite = mdf.reset_index()\n",
+    "mdf_lite = mdf_lite[['#SampleID', 'Strain']].rename({'#SampleID': 'variable'}, axis='columns')\n",
+    "# Merge with the data\n",
+    "df = df.merge(mdf_lite, how='inner')\n",
+    "df.Strain = df.Strain.astype(str)\n",
+    "# Add colors for plotting\n",
+    "otu_max_colors_Phylum = sorted(df['X.OTU.ID'].unique())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "135c1c12",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "# Filter by abundance\n",
+    "filtered_df = df[df.value > float(config['abundance_threshold'])]\n",
+    "\n",
+    "groups = filtered_df.groupby('Strain')\n",
+    "latex = []\n",
+    "for name, group in groups:\n",
+    "    # Get the means for each group\n",
+    "    means = group.groupby('X.OTU.ID').mean()\n",
+    "    line_latex = []\n",
+    "    for row in means.itertuples():\n",
+    "        perc = 100 * float(row.value)\n",
+    "        # Align sample names\n",
+    "        if perc < 10:\n",
+    "            line_text = '{}/ {:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        else:\n",
+    "            line_text = '{}/{:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        line_latex.append(line_text)\n",
+    "    latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuPhylumStrain',\n",
+    "                                                          colors=','.join(line_latex)))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4111f172",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "p <- ggplot(df, aes(x = variable, y = value, fill = X.OTU.ID)) +\n",
+    "     geom_bar(stat = \"identity\") +\n",
+    "     labs(x = \"Sample ID\",\n",
+    "          title = 'Taxa Summary',\n",
+    "          subtitle = 'Grouped by Strain') +\n",
+    "     scale_y_discrete(name = \"OTU Percentage\",\n",
+    "                      limits = c(0, 1),\n",
+    "                      expand = c(0, 0)) +\n",
+    "     theme(text = element_text(size = 8.5,\n",
+    "                               face = \"bold\"),\n",
+    "           element_line(size = 0.1),\n",
+    "           legend.position = \"none\",\n",
+    "           axis.text.x = element_text(angle = 290, hjust = 0),\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "     guides(fill = guide_legend(ncol = 4)) +\n",
+    "     facet_grid(~Strain, scales = \"free\", space = \"free\") +\n",
+    "     otuColScalePhylum + otuColFillPhylum\n",
+    "\n",
+    "ggsave(\"level-2-Strain.png\", height = 6, width = 8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "10bcaa01",
+   "metadata": {
+    "PhylumStrain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"level-2-Strain.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "fe45b853",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "\n",
+    "# Get the mean percentage of each taxon\n",
+    "otu_percs = df[df.value > float(config['abundance_threshold'])].groupby('X.OTU.ID').mean()\n",
+    "\n",
+    "entries = []\n",
+    "# Remove duplicate values\n",
+    "for row in otu_percs.itertuples():\n",
+    "    otu = row.Index\n",
+    "\n",
+    "    # Get the color\n",
+    "    RGB = tuple(otuAllRGBPhylum[otu])\n",
+    "\n",
+    "    # Align sample names\n",
+    "    perc = 100 * float(otu_percs.loc[otu]['value'])\n",
+    "    if perc < 1:\n",
+    "        perc_text = '<0.01'\n",
+    "    elif perc < 10:\n",
+    "        perc_text = ' {:.2f}'.format(perc)\n",
+    "    else:\n",
+    "        perc_text = '{:.2f}'.format(perc)\n",
+    "\n",
+    "    entries.append([otu, RGB, perc_text])\n",
+    "\n",
+    "\n",
+    "# Create the latex for the legends\n",
+    "latex = []\n",
+    "colors = []\n",
+    "for key, value, perc in entries:\n",
+    "    latex.append('\\\\definecolor{{{key}}}{{RGB}}{{{r},{g},{b}}}\\n'.format(key=key.replace('_', '\\_'),\n",
+    "                                                                      r=value[0],\n",
+    "                                                                      g=value[1],\n",
+    "                                                                      b=value[2]\n",
+    "                                                                     ))\n",
+    "    colors.append('{}/{}'.format(key.replace('_', '\\_'), perc))\n",
+    "\n",
+    "\n",
+    "latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuPhylum',\n",
+    "                                                      colors=','.join(colors)))\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d0bbf22b",
+   "metadata": {},
+   "source": [
+    "The above plot represents the percentage of each sample belonging to particular taxon summarized at the Phylum level."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "df4430e8",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "422b6f94",
+   "metadata": {},
+   "source": [
+    "## Genus Level"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4cf065fc",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv('level-6.csv', sep=',')\n",
+    "# Remove unnecessary metadata\n",
+    "headers = list(filter(lambda x: 'k__' in x, df.columns)) + ['index']\n",
+    "df = df.filter(headers).set_index('index').T\n",
+    "# Calculate relative abundances\n",
+    "df = df.apply(lambda x: x / x.sum(), axis='index')\n",
+    "# Transpose the dataframe and convert to long format\n",
+    "df = df.T.reset_index(level=0).melt('index')\n",
+    "# Rename the columns\n",
+    "df.rename({'index': 'variable', 'variable': 'X.OTU.ID'}, axis='columns', inplace=True)\n",
+    "df = df.astype({'variable': 'str'})\n",
+    "# Modify the metadata\n",
+    "mdf_lite = mdf.reset_index()\n",
+    "mdf_lite = mdf_lite[['#SampleID', 'Housing']].rename({'#SampleID': 'variable'}, axis='columns')\n",
+    "# Merge with the data\n",
+    "df = df.merge(mdf_lite, how='inner')\n",
+    "df.Housing = df.Housing.astype(str)\n",
+    "# Add colors for plotting\n",
+    "otu_max_colors_Genus = sorted(df['X.OTU.ID'].unique())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "14805a27",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i otu_max_colors_Genus -o otuAllRGBGenus\n",
+    "\n",
+    "# Create custom color palette\n",
+    "otuColorsGenus <- brewer.pal(12, \"Paired\")\n",
+    "otuColorMakerGenus <- colorRampPalette(otuColorsGenus)\n",
+    "otuAllColorsGenus <- otuColorMakerGenus(length(otu_max_colors_Genus))\n",
+    "names(otuAllColorsGenus) <- otu_max_colors_Genus\n",
+    "# Create the functions for applying it to plots\n",
+    "otuColScaleGenus <- scale_color_manual(name = ~X.OTU.ID, values = otuAllColorsGenus)\n",
+    "otuColFillGenus <- scale_fill_manual(name = ~X.OTU.ID, values = otuAllColorsGenus)\n",
+    "# Get the RGB values for the colors\n",
+    "otuAllRGBGenus <- data.frame(apply(data.frame(otuAllColorsGenus), 1, col2rgb))\n",
+    "names(otuAllRGBGenus) <- otu_max_colors_Genus"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "56724370",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "# Filter by abundance\n",
+    "filtered_df = df[df.value > float(config['abundance_threshold'])]\n",
+    "\n",
+    "groups = filtered_df.groupby('Housing')\n",
+    "latex = []\n",
+    "for name, group in groups:\n",
+    "    # Get the means for each group\n",
+    "    means = group.groupby('X.OTU.ID').mean()\n",
+    "    line_latex = []\n",
+    "    for row in means.itertuples():\n",
+    "        perc = 100 * float(row.value)\n",
+    "        # Align sample names\n",
+    "        if perc < 10:\n",
+    "            line_text = '{}/ {:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        else:\n",
+    "            line_text = '{}/{:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        line_latex.append(line_text)\n",
+    "    latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuGenusHousing',\n",
+    "                                                          colors=','.join(line_latex)))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "07b39ef3",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "p <- ggplot(df, aes(x = variable, y = value, fill = X.OTU.ID)) +\n",
+    "     geom_bar(stat = \"identity\") +\n",
+    "     labs(x = \"Sample ID\",\n",
+    "          title = 'Taxa Summary',\n",
+    "          subtitle = 'Grouped by Housing') +\n",
+    "     scale_y_discrete(name = \"OTU Percentage\",\n",
+    "                      limits = c(0, 1),\n",
+    "                      expand = c(0, 0)) +\n",
+    "     theme(text = element_text(size = 8.5,\n",
+    "                               face = \"bold\"),\n",
+    "           element_line(size = 0.1),\n",
+    "           legend.position = \"none\",\n",
+    "           axis.text.x = element_text(angle = 290, hjust = 0),\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "     guides(fill = guide_legend(ncol = 4)) +\n",
+    "     facet_grid(~Housing, scales = \"free\", space = \"free\") +\n",
+    "     otuColScaleGenus + otuColFillGenus\n",
+    "\n",
+    "ggsave(\"level-6-Housing.png\", height = 6, width = 8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9997cccb",
+   "metadata": {
+    "GenusHousing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"level-6-Housing.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "cd0ab670",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "\n",
+    "# Get the mean percentage of each taxon\n",
+    "otu_percs = df[df.value > float(config['abundance_threshold'])].groupby('X.OTU.ID').mean()\n",
+    "\n",
+    "entries = []\n",
+    "# Remove duplicate values\n",
+    "for row in otu_percs.itertuples():\n",
+    "    otu = row.Index\n",
+    "\n",
+    "    # Get the color\n",
+    "    RGB = tuple(otuAllRGBGenus[otu])\n",
+    "\n",
+    "    # Align sample names\n",
+    "    perc = 100 * float(otu_percs.loc[otu]['value'])\n",
+    "    if perc < 1:\n",
+    "        perc_text = '<0.01'\n",
+    "    elif perc < 10:\n",
+    "        perc_text = ' {:.2f}'.format(perc)\n",
+    "    else:\n",
+    "        perc_text = '{:.2f}'.format(perc)\n",
+    "\n",
+    "    entries.append([otu, RGB, perc_text])\n",
+    "\n",
+    "\n",
+    "# Create the latex for the legends\n",
+    "latex = []\n",
+    "colors = []\n",
+    "for key, value, perc in entries:\n",
+    "    latex.append('\\\\definecolor{{{key}}}{{RGB}}{{{r},{g},{b}}}\\n'.format(key=key.replace('_', '\\_'),\n",
+    "                                                                      r=value[0],\n",
+    "                                                                      g=value[1],\n",
+    "                                                                      b=value[2]\n",
+    "                                                                     ))\n",
+    "    colors.append('{}/{}'.format(key.replace('_', '\\_'), perc))\n",
+    "\n",
+    "\n",
+    "latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuGenus',\n",
+    "                                                      colors=','.join(colors)))\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "33e62194",
+   "metadata": {},
+   "source": [
+    "The above plot represents the percentage of each sample belonging to particular taxon summarized at the Genus level."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e7ce81cd",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6a740e7b",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv('level-6.csv', sep=',')\n",
+    "# Remove unnecessary metadata\n",
+    "headers = list(filter(lambda x: 'k__' in x, df.columns)) + ['index']\n",
+    "df = df.filter(headers).set_index('index').T\n",
+    "# Calculate relative abundances\n",
+    "df = df.apply(lambda x: x / x.sum(), axis='index')\n",
+    "# Transpose the dataframe and convert to long format\n",
+    "df = df.T.reset_index(level=0).melt('index')\n",
+    "# Rename the columns\n",
+    "df.rename({'index': 'variable', 'variable': 'X.OTU.ID'}, axis='columns', inplace=True)\n",
+    "df = df.astype({'variable': 'str'})\n",
+    "# Modify the metadata\n",
+    "mdf_lite = mdf.reset_index()\n",
+    "mdf_lite = mdf_lite[['#SampleID', 'Strain']].rename({'#SampleID': 'variable'}, axis='columns')\n",
+    "# Merge with the data\n",
+    "df = df.merge(mdf_lite, how='inner')\n",
+    "df.Strain = df.Strain.astype(str)\n",
+    "# Add colors for plotting\n",
+    "otu_max_colors_Genus = sorted(df['X.OTU.ID'].unique())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "475d3be2",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "# Filter by abundance\n",
+    "filtered_df = df[df.value > float(config['abundance_threshold'])]\n",
+    "\n",
+    "groups = filtered_df.groupby('Strain')\n",
+    "latex = []\n",
+    "for name, group in groups:\n",
+    "    # Get the means for each group\n",
+    "    means = group.groupby('X.OTU.ID').mean()\n",
+    "    line_latex = []\n",
+    "    for row in means.itertuples():\n",
+    "        perc = 100 * float(row.value)\n",
+    "        # Align sample names\n",
+    "        if perc < 10:\n",
+    "            line_text = '{}/ {:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        else:\n",
+    "            line_text = '{}/{:.2f}'.format(row.Index.replace('_', '\\_'), perc)\n",
+    "        line_latex.append(line_text)\n",
+    "    latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuGenusStrain',\n",
+    "                                                          colors=','.join(line_latex)))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5f8193d2",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "p <- ggplot(df, aes(x = variable, y = value, fill = X.OTU.ID)) +\n",
+    "     geom_bar(stat = \"identity\") +\n",
+    "     labs(x = \"Sample ID\",\n",
+    "          title = 'Taxa Summary',\n",
+    "          subtitle = 'Grouped by Strain') +\n",
+    "     scale_y_discrete(name = \"OTU Percentage\",\n",
+    "                      limits = c(0, 1),\n",
+    "                      expand = c(0, 0)) +\n",
+    "     theme(text = element_text(size = 8.5,\n",
+    "                               face = \"bold\"),\n",
+    "           element_line(size = 0.1),\n",
+    "           legend.position = \"none\",\n",
+    "           axis.text.x = element_text(angle = 290, hjust = 0),\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "     guides(fill = guide_legend(ncol = 4)) +\n",
+    "     facet_grid(~Strain, scales = \"free\", space = \"free\") +\n",
+    "     otuColScaleGenus + otuColFillGenus\n",
+    "\n",
+    "ggsave(\"level-6-Strain.png\", height = 6, width = 8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2ddb850b",
+   "metadata": {
+    "GenusStrain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"level-6-Strain.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "976a9942",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* block packages *))' in line:\n",
+    "        packages_start = i\n",
+    "    elif '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "\n",
+    "# Get the mean percentage of each taxon\n",
+    "otu_percs = df[df.value > float(config['abundance_threshold'])].groupby('X.OTU.ID').mean()\n",
+    "\n",
+    "entries = []\n",
+    "# Remove duplicate values\n",
+    "for row in otu_percs.itertuples():\n",
+    "    otu = row.Index\n",
+    "\n",
+    "    # Get the color\n",
+    "    RGB = tuple(otuAllRGBGenus[otu])\n",
+    "\n",
+    "    # Align sample names\n",
+    "    perc = 100 * float(otu_percs.loc[otu]['value'])\n",
+    "    if perc < 1:\n",
+    "        perc_text = '<0.01'\n",
+    "    elif perc < 10:\n",
+    "        perc_text = ' {:.2f}'.format(perc)\n",
+    "    else:\n",
+    "        perc_text = '{:.2f}'.format(perc)\n",
+    "\n",
+    "    entries.append([otu, RGB, perc_text])\n",
+    "\n",
+    "\n",
+    "# Create the latex for the legends\n",
+    "latex = []\n",
+    "colors = []\n",
+    "for key, value, perc in entries:\n",
+    "    latex.append('\\\\definecolor{{{key}}}{{RGB}}{{{r},{g},{b}}}\\n'.format(key=key.replace('_', '\\_'),\n",
+    "                                                                      r=value[0],\n",
+    "                                                                      g=value[1],\n",
+    "                                                                      b=value[2]\n",
+    "                                                                     ))\n",
+    "    colors.append('{}/{}'.format(key.replace('_', '\\_'), perc))\n",
+    "\n",
+    "\n",
+    "latex.append('\\\\def\\\\{colorset}{{{colors}}}\\n'.format(colorset='otuGenus',\n",
+    "                                                      colors=','.join(colors)))\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "933fd410",
+   "metadata": {},
+   "source": [
+    "The above plot represents the percentage of each sample belonging to particular taxon summarized at the Genus level."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "11820a82",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dcc1e935",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Reset this variable\n",
+    "latex = []\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "for key, value in allRGB.items():\n",
+    "    latex.append('\\\\definecolor{{{key}}}{{RGB}}{{{r},{g},{b}}}\\n'.format(key=key,\n",
+    "                                                                         r=value[0],\n",
+    "                                                                         g=value[1],\n",
+    "                                                                         b=value[2]))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5b7d6d5a",
+   "metadata": {},
+   "source": [
+    "# Alpha Diversity"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5169877f",
+   "metadata": {},
+   "source": [
+    "## Interpreting Alpha Diversity Results"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dcbd614e",
+   "metadata": {},
+   "source": [
+    "Alpha diversity estimates the amount of microbial diversity present in a sample or group of samples. There are several measures that can be used for alpha diversity, including observed features, Shannon's diversity or Faith's phylogenetic diversity. Because diversity estimates depend on the total number of sequences assigned to each sample, rarefaction curves are constructed to show the relation between alpha diversity (on the vertical axis) and sequencing depth (on the horizontal axis). Curves that gradually plateau as sequencing depth increases suggest that additional sequencing effort would not substantially yield additional results in terms of currently not observed diversity; curves that continue to increase suggest additional sequencing effort might be required to saturate the estimate."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3a585410",
+   "metadata": {},
+   "source": [
+    "## Shannon Diversity"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "27b330c7",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Read in the data\n",
+    "df = pd.read_csv('shannon.csv', sep=',')\n",
+    "\n",
+    "# Reshape the data into (mostly) long format\n",
+    "headers = list(set(mdf.columns).intersection(set(df.columns)))\n",
+    "df = df.melt(id_vars=['sample-id'] + headers)\n",
+    "\n",
+    "# Remove info on specific iterations to allow for grouping by value\n",
+    "replacements = {x:int(x.split('_')[0].split('-')[1]) for x in df.variable.unique()}\n",
+    "df.variable.replace(replacements, inplace=True)\n",
+    "\n",
+    "# For storing\n",
+    "group_means = []\n",
+    "\n",
+    "for group_name in metadata_discrete:\n",
+    "    # Remove the metadata not relevant to this grouping\n",
+    "    groups = df[['sample-id', 'variable', 'value', group_name]]\n",
+    "\n",
+    "    # Calculate the means accross iterations\n",
+    "    agger = {'value': 'mean', group_name: 'first'}\n",
+    "    groups = groups.groupby(['sample-id', 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Add a column to store the errors\n",
+    "    groups = groups.assign(Error=groups.value)\n",
+    "\n",
+    "    # Group by metadata value and calculate the means and error\n",
+    "    agger = {'Error': 'sem', 'value': 'mean'}\n",
+    "    group = groups.groupby([group_name, 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Assign information for the colors\n",
+    "    colors = [color_maps[group_name][str(x)] for x in group[group_name]]\n",
+    "    group = group.assign(GroupID=colors)\n",
+    "\n",
+    "    # Assign information for grouping\n",
+    "    group_names = [group_name for x in group[group_name]]\n",
+    "    group = group.assign(GroupName=group_names)\n",
+    "\n",
+    "    # Rename columns and append to the list of dataframes\n",
+    "    new_names = {\n",
+    "        'variable': 'SamplingDepth',\n",
+    "        'value': 'AverageValue',\n",
+    "         group_name: 'Grouping'\n",
+    "    }\n",
+    "    group_means.append(group.rename(index=str, columns=new_names))\n",
+    "\n",
+    "# Stack all the different groups into a single dataframe\n",
+    "df = pd.concat(group_means, axis=0, sort=False)\n",
+    "df.SamplingDepth = df.SamplingDepth.astype(float)\n",
+    "df.Error = df.Error.astype(float)\n",
+    "df.AverageValue = df.AverageValue.astype(float)\n",
+    "df.Grouping = df.Grouping.astype(str)\n",
+    "df.GroupID = df.GroupID.astype(str)\n",
+    "df.GroupName = df.GroupName.astype(str)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "113e7095",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "pd <- position_dodge(width = 50)\n",
+    "\n",
+    "p <- ggplot(data = df, aes(x = SamplingDepth, y = AverageValue, color = GroupID)) +\n",
+    "     geom_errorbar(aes(ymin=AverageValue-Error, ymax=AverageValue+Error), width=100, position = pd) +\n",
+    "     geom_point(stat='identity', position = pd, size = 1) +\n",
+    "     geom_line(stat='identity', position = pd) +\n",
+    "     facet_wrap(~GroupName) + colFill + colScale +\n",
+    "     labs(title = 'Alpha Diversity',\n",
+    "          subtitle = 'Grouped by Discrete Metadata Categories') +\n",
+    "     theme_bw() +\n",
+    "     theme(legend.position = 'none',\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5))\n",
+    "\n",
+    "# Save plots\n",
+    "ggsave('shannon.png', height = 6, width = 6)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c9dd027e",
+   "metadata": {
+    "Housing": true,
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"shannon.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4ad52760",
+   "metadata": {},
+   "source": [
+    "The above plot represents the average value of alpha diversity at each sampling depth. The error bars show the standard error within each group. Groups are determined by the metadata value in each category specified in the plot."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "754caeb3",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "561b915e",
+   "metadata": {},
+   "source": [
+    "## Faith's Phylogenetic Diversity"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2f039141",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Read in the data\n",
+    "df = pd.read_csv('faith_pd.csv', sep=',')\n",
+    "\n",
+    "# Reshape the data into (mostly) long format\n",
+    "headers = list(set(mdf.columns).intersection(set(df.columns)))\n",
+    "df = df.melt(id_vars=['sample-id'] + headers)\n",
+    "\n",
+    "# Remove info on specific iterations to allow for grouping by value\n",
+    "replacements = {x:int(x.split('_')[0].split('-')[1]) for x in df.variable.unique()}\n",
+    "df.variable.replace(replacements, inplace=True)\n",
+    "\n",
+    "# For storing\n",
+    "group_means = []\n",
+    "\n",
+    "for group_name in metadata_discrete:\n",
+    "    # Remove the metadata not relevant to this grouping\n",
+    "    groups = df[['sample-id', 'variable', 'value', group_name]]\n",
+    "\n",
+    "    # Calculate the means accross iterations\n",
+    "    agger = {'value': 'mean', group_name: 'first'}\n",
+    "    groups = groups.groupby(['sample-id', 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Add a column to store the errors\n",
+    "    groups = groups.assign(Error=groups.value)\n",
+    "\n",
+    "    # Group by metadata value and calculate the means and error\n",
+    "    agger = {'Error': 'sem', 'value': 'mean'}\n",
+    "    group = groups.groupby([group_name, 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Assign information for the colors\n",
+    "    colors = [color_maps[group_name][str(x)] for x in group[group_name]]\n",
+    "    group = group.assign(GroupID=colors)\n",
+    "\n",
+    "    # Assign information for grouping\n",
+    "    group_names = [group_name for x in group[group_name]]\n",
+    "    group = group.assign(GroupName=group_names)\n",
+    "\n",
+    "    # Rename columns and append to the list of dataframes\n",
+    "    new_names = {\n",
+    "        'variable': 'SamplingDepth',\n",
+    "        'value': 'AverageValue',\n",
+    "         group_name: 'Grouping'\n",
+    "    }\n",
+    "    group_means.append(group.rename(index=str, columns=new_names))\n",
+    "\n",
+    "# Stack all the different groups into a single dataframe\n",
+    "df = pd.concat(group_means, axis=0, sort=False)\n",
+    "df.SamplingDepth = df.SamplingDepth.astype(float)\n",
+    "df.Error = df.Error.astype(float)\n",
+    "df.AverageValue = df.AverageValue.astype(float)\n",
+    "df.Grouping = df.Grouping.astype(str)\n",
+    "df.GroupID = df.GroupID.astype(str)\n",
+    "df.GroupName = df.GroupName.astype(str)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "22ae2bac",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "pd <- position_dodge(width = 50)\n",
+    "\n",
+    "p <- ggplot(data = df, aes(x = SamplingDepth, y = AverageValue, color = GroupID)) +\n",
+    "     geom_errorbar(aes(ymin=AverageValue-Error, ymax=AverageValue+Error), width=100, position = pd) +\n",
+    "     geom_point(stat='identity', position = pd, size = 1) +\n",
+    "     geom_line(stat='identity', position = pd) +\n",
+    "     facet_wrap(~GroupName) + colFill + colScale +\n",
+    "     labs(title = 'Alpha Diversity',\n",
+    "          subtitle = 'Grouped by Discrete Metadata Categories') +\n",
+    "     theme_bw() +\n",
+    "     theme(legend.position = 'none',\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5))\n",
+    "\n",
+    "# Save plots\n",
+    "ggsave('faith_pd.png', height = 6, width = 6)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "60211aba",
+   "metadata": {
+    "Housing": true,
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"faith_pd.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1ec14390",
+   "metadata": {},
+   "source": [
+    "The above plot represents the average value of alpha diversity at each sampling depth. The error bars show the standard error within each group. Groups are determined by the metadata value in each category specified in the plot."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e058681a",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3d8c87ee",
+   "metadata": {},
+   "source": [
+    "## Observed ASV"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "61ebc6bb",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Read in the data\n",
+    "df = pd.read_csv('observed_features.csv', sep=',')\n",
+    "\n",
+    "# Reshape the data into (mostly) long format\n",
+    "headers = list(set(mdf.columns).intersection(set(df.columns)))\n",
+    "df = df.melt(id_vars=['sample-id'] + headers)\n",
+    "\n",
+    "# Remove info on specific iterations to allow for grouping by value\n",
+    "replacements = {x:int(x.split('_')[0].split('-')[1]) for x in df.variable.unique()}\n",
+    "df.variable.replace(replacements, inplace=True)\n",
+    "\n",
+    "# For storing\n",
+    "group_means = []\n",
+    "\n",
+    "for group_name in metadata_discrete:\n",
+    "    # Remove the metadata not relevant to this grouping\n",
+    "    groups = df[['sample-id', 'variable', 'value', group_name]]\n",
+    "\n",
+    "    # Calculate the means accross iterations\n",
+    "    agger = {'value': 'mean', group_name: 'first'}\n",
+    "    groups = groups.groupby(['sample-id', 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Add a column to store the errors\n",
+    "    groups = groups.assign(Error=groups.value)\n",
+    "\n",
+    "    # Group by metadata value and calculate the means and error\n",
+    "    agger = {'Error': 'sem', 'value': 'mean'}\n",
+    "    group = groups.groupby([group_name, 'variable']).agg(agger).reset_index()\n",
+    "\n",
+    "    # Assign information for the colors\n",
+    "    colors = [color_maps[group_name][str(x)] for x in group[group_name]]\n",
+    "    group = group.assign(GroupID=colors)\n",
+    "\n",
+    "    # Assign information for grouping\n",
+    "    group_names = [group_name for x in group[group_name]]\n",
+    "    group = group.assign(GroupName=group_names)\n",
+    "\n",
+    "    # Rename columns and append to the list of dataframes\n",
+    "    new_names = {\n",
+    "        'variable': 'SamplingDepth',\n",
+    "        'value': 'AverageValue',\n",
+    "         group_name: 'Grouping'\n",
+    "    }\n",
+    "    group_means.append(group.rename(index=str, columns=new_names))\n",
+    "\n",
+    "# Stack all the different groups into a single dataframe\n",
+    "df = pd.concat(group_means, axis=0, sort=False)\n",
+    "df.SamplingDepth = df.SamplingDepth.astype(float)\n",
+    "df.Error = df.Error.astype(float)\n",
+    "df.AverageValue = df.AverageValue.astype(float)\n",
+    "df.Grouping = df.Grouping.astype(str)\n",
+    "df.GroupID = df.GroupID.astype(str)\n",
+    "df.GroupName = df.GroupName.astype(str)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "bfffa945",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "pd <- position_dodge(width = 50)\n",
+    "\n",
+    "p <- ggplot(data = df, aes(x = SamplingDepth, y = AverageValue, color = GroupID)) +\n",
+    "     geom_errorbar(aes(ymin=AverageValue-Error, ymax=AverageValue+Error), width=100, position = pd) +\n",
+    "     geom_point(stat='identity', position = pd, size = 1) +\n",
+    "     geom_line(stat='identity', position = pd) +\n",
+    "     facet_wrap(~GroupName) + colFill + colScale +\n",
+    "     labs(title = 'Alpha Diversity',\n",
+    "          subtitle = 'Grouped by Discrete Metadata Categories') +\n",
+    "     theme_bw() +\n",
+    "     theme(legend.position = 'none',\n",
+    "           plot.title = element_text(hjust = 0.5),\n",
+    "           plot.subtitle = element_text(hjust = 0.5))\n",
+    "\n",
+    "# Save plots\n",
+    "ggsave('observed_features.png', height = 6, width = 6)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d6dc6df3",
+   "metadata": {
+    "Housing": true,
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"observed_features.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b5a95bd1",
+   "metadata": {},
+   "source": [
+    "The above plot represents the average value of alpha diversity at each sampling depth. The error bars show the standard error within each group. Groups are determined by the metadata value in each category specified in the plot."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "10a68cde",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8a9f133f",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "# Reset this variable\n",
+    "latex = []\n",
+    "with open('mod_revtex.tplx', 'r') as f:\n",
+    "    lines = f.readlines()\n",
+    "for i, line in enumerate(lines):\n",
+    "    if '((* endblock packages *))' in line:\n",
+    "        packages_end = i\n",
+    "\n",
+    "# Define the colors for each category/value in the alpha/beta plots\n",
+    "for group_name, group in df.groupby('GroupName'):\n",
+    "    zipped = zip(group.GroupID.unique(), group.Grouping.unique())\n",
+    "    lists = ['{}/{}'.format(x, y) for x, y in zipped]\n",
+    "    latex.append('\\\\def\\\\{group}{{{colors}}}\\n'.format(group=group_name, colors=','.join(lists)))\n",
+    "\n",
+    "new_lines = lines[:packages_end] + latex + lines[packages_end:]\n",
+    "\n",
+    "with open('mod_revtex.tplx', 'w') as f:\n",
+    "    for line in new_lines:\n",
+    "        f.write(line)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "71561550",
+   "metadata": {},
+   "source": [
+    "# Beta Diversity"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d1b501b1",
+   "metadata": {},
+   "source": [
+    "## Interpreting Beta Diversity Results"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4d9a3968",
+   "metadata": {},
+   "source": [
+    "Beta diversity estimates how similar or dissimilar samples are based on their microbiome composition. Different to alpha diversity, which is estimated per sample, beta diversity is a distance that is calculated between pairs of samples. Samples that are similar to each other in their microbiome composition will have a low distance between them based on beta diversity, while those that are very different in their composition will have a large distance. Principal Coordinate Analysis (PCoA) is an ordination technique that visually represents the samples based on their beta diversity distances to facilitate the identification of clusters or gradients of samples. By default, the first three principal coordinates are shown in PCoA plots."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ae94df43",
+   "metadata": {},
+   "source": [
+    "## Bray-Curtis, grouped by Housing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "64afb8ac",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('bray_curtis_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Housing'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Housing'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2a57a491",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('bray_curtis_pcoa_results-Housing.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Housing')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('bray_curtis_pcoa_results-Housing-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Housing')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4906864e",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Housing.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dc2b0f5f",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "6aec962b",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Housing-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0669eeef",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Housing-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "72d74837",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Housing-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0a09be25",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "466bdc3e",
+   "metadata": {},
+   "source": [
+    "## Bray-Curtis, grouped by Strain"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1be36892",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('bray_curtis_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Strain'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Strain'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "604f8d8f",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('bray_curtis_pcoa_results-Strain.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Strain')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('bray_curtis_pcoa_results-Strain-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Strain')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "90089a82",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Strain.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ce334ab7",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f2830ccc",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Strain-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "899f3a64",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Strain-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "44cb14c2",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"bray_curtis_pcoa_results-Strain-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fe17151c",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "48751f3f",
+   "metadata": {},
+   "source": [
+    "## Unweighted UniFrac, grouped by Housing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7f7341ff",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('unweighted_unifrac_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Housing'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Housing'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b51044c8",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('unweighted_unifrac_pcoa_results-Housing.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Housing')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('unweighted_unifrac_pcoa_results-Housing-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Housing')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e9eeb452",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Housing.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c33b0674",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "1a859d92",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Housing-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "bc7e89b9",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Housing-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2c3f84a1",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Housing-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "62339d47",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0cf18695",
+   "metadata": {},
+   "source": [
+    "## Unweighted UniFrac, grouped by Strain"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e4b61300",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('unweighted_unifrac_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Strain'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Strain'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5a063ec0",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('unweighted_unifrac_pcoa_results-Strain.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Strain')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('unweighted_unifrac_pcoa_results-Strain-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Strain')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "731f11ec",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Strain.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "47223a2b",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "aac7450a",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Strain-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4b3e0eeb",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Strain-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3945ceda",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"unweighted_unifrac_pcoa_results-Strain-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "427c40bf",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e516a0ba",
+   "metadata": {},
+   "source": [
+    "## Weighted UniFrac, grouped by Housing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dbd98a01",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('weighted_unifrac_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Housing'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Housing'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3d9f1c74",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('weighted_unifrac_pcoa_results-Housing.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Housing')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('weighted_unifrac_pcoa_results-Housing-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Housing')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e8745085",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Housing.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3e1b5f9d",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "142a537b",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Housing-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "da4a4590",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Housing-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "836dc7ad",
+   "metadata": {
+    "Housing": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Housing-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b0748530",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c74544c5",
+   "metadata": {},
+   "source": [
+    "## Weighted UniFrac, grouped by Strain"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3eaf667d",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "with open('weighted_unifrac_pcoa_results.txt') as f:\n",
+    "    page = f.read()\n",
+    "\n",
+    "store = {}\n",
+    "# Parse the PCA information file\n",
+    "for i, line in enumerate(page.split('\\n')):\n",
+    "    parts = line.split('\\t')\n",
+    "    if i == 0:\n",
+    "        length = int(parts[1])\n",
+    "    if i > 9 :\n",
+    "        if line == '':\n",
+    "            break\n",
+    "        store[parts[0]] = list(map(float, parts[1:length]))\n",
+    "\n",
+    "# Create a dataframe and name the axes\n",
+    "df = pd.DataFrame.from_dict(store).T\n",
+    "cols = {x:'PC{}'.format(x + 1) for x in df.columns}\n",
+    "df = df.rename(index=str, columns=cols)\n",
+    "\n",
+    "# Assign GroupIDs based on metadata\n",
+    "samples = mdf['Strain'][[x for x in df.axes[0]]]\n",
+    "df = df.assign(GroupID=[color_maps['Strain'][str(x)] for x in samples])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "7529d672",
+   "metadata": {
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "%%R -i df\n",
+    "\n",
+    "# Create the plots for the first three PCs\n",
+    "png('weighted_unifrac_pcoa_results-Strain.png', width = 6, height = 6, unit='in', res=200)\n",
+    "p <- ggpairs(df[,c(1:3)],\n",
+    "             upper = list(continuous = \"points\", combo = \"box_no_facet\"),\n",
+    "             lower = list(continuous = \"points\", combo = \"dot_no_facet\"),\n",
+    "             aes(color = df$GroupID, label = rownames(df), alpha=0.5)) +\n",
+    "         theme_bw() +\n",
+    "         theme(legend.position = 'none',\n",
+    "               plot.title = element_text(hjust = 0.5),\n",
+    "               plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "         labs(title = 'PCA plot',\n",
+    "              subtitle = 'Colored by Strain')\n",
+    "\n",
+    "# Add the color palette to each of the plots\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        p[i,j] <- p[i,j] + colScale + colFill\n",
+    "    }\n",
+    "}\n",
+    "print(p)\n",
+    "out <- dev.off()\n",
+    "\n",
+    "# Print the individual PCA plots with labels\n",
+    "for(i in 1:p$nrow) {\n",
+    "    for(j in 1:p$ncol){\n",
+    "        # Only print the PCAs not the frequency distributions\n",
+    "        if (i > 2 && j < 3 || i > 1 && j < 2) {\n",
+    "            # Setup and save each individual PCA plot\n",
+    "            filename <- sprintf('weighted_unifrac_pcoa_results-Strain-%s-%s.png',\n",
+    "                                p[i, j]$labels$x,\n",
+    "                                p[i, j]$labels$y)\n",
+    "            png(filename, width = 6, height = 6, unit='in', res=200)\n",
+    "            sp <- p[i,j] + geom_text_repel(color = \"black\", alpha = 0.35, max.overlaps = Inf) +\n",
+    "                      theme(legend.position = 'none',\n",
+    "                            plot.title = element_text(hjust = 0.5),\n",
+    "                            plot.subtitle = element_text(hjust = 0.5)) +\n",
+    "                      labs(title = sprintf('%s vs. %s',\n",
+    "                                           p[i, j]$labels$x,\n",
+    "                                           p[i, j]$labels$y),\n",
+    "                           subtitle = 'Colored by Strain')\n",
+    "            print(sp)\n",
+    "            out <- dev.off()\n",
+    "        }\n",
+    "    }\n",
+    "}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "8956fff9",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Strain.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dd8fec5c",
+   "metadata": {},
+   "source": [
+    "The above plot represents the first three compenents created when performing Principle Component Analysis on the Beta diversity of the samples."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3cf9bc29",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Strain-PC1-PC2.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "89db59bf",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Strain-PC1-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "67fa761c",
+   "metadata": {
+    "Strain": true,
+    "hide_input": true
+   },
+   "outputs": [],
+   "source": [
+    "Image(\"weighted_unifrac_pcoa_results-Strain-PC2-PC3.png\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c8cbf528",
+   "metadata": {},
+   "source": [
+    "\\pagebreak"
+   ]
+  }
+ ],
+ "metadata": {
+  "latex_metadata": {
+   "affiliation": "Icahn School of Medicine at Mount Sinai",
+   "author": "Clemente Lab",
+   "name": "MMEDS Analysis Summary",
+   "title": "MMEDS Analysis Summary"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: analysis
+Version: 0.1
+Summary: ?
+Author: The Clemente Lab
+Author-email: mkstapylton@gmail.com
+License: GPL
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: GNU General Public License v2 (GPLv2)
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
